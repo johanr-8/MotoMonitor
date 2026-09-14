@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>{{ "Edit Vehicle" if vehicle else "Add Vehicle" }}</h2>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nickname</label>
+                            <input type="text" name="nickname" class="form-control" value="{{ vehicle.nickname if vehicle else '' }}" placeholder="e.g. My CB350">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Make</label>
+                            <input type="text" name="make" class="form-control" value="{{ vehicle.make if vehicle else '' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Model</label>
+                            <input type="text" name="model" class="form-control" value="{{ vehicle.model if vehicle else '' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Registration Number</label>
+                            <input type="text" name="registration_number" class="form-control" value="{{ vehicle.registration_number if vehicle else '' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Purchase Date</label>
+                            <input type="date" name="purchase_date" class="form-control" value="{{ vehicle.purchase_date if vehicle else '' }}" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">{{ "Update" if vehicle else "Add" }} Vehicle</button>
+                    <a href="{{ url_for('vehicles.list_vehicles') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

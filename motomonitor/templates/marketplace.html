@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Marketplace</h2>
+<p class="text-muted">Pincode: <strong>{{ user_pincode or 'Not set' }}</strong> | Orders from your area count toward bulk unlock.</p>
+
+<div class="row">
+    {% for p in products %}
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ p.name }}</h5>
+                    <p class="card-text">
+                        <span class="badge bg-secondary">{{ p.category }}</span><br>
+                        <del class="text-muted">Rs.{{ "%.2f"|format(p.retail_price) }}</del>
+                        <strong class="text-success fs-5"> Rs.{{ "%.2f"|format(p.app_price) }}</strong><br>
+                        <small class="text-success">You save Rs.{{ "%.2f"|format(p.retail_price - p.app_price) }}</small>
+                    </p>
+                    <div class="mb-2">
+                        <small>Bulk progress: {{ p.progress }}/{{ p.bulk_threshold }} orders</small>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" style="width: {{ (p.progress / p.bulk_threshold * 100) | int if p.bulk_threshold > 0 else 0 }}%"></div>
+                        </div>
+                    </div>
+                    {% if p.already_ordered %}
+                        <span class="badge bg-warning">Already ordered</span>
+                    {% else %}
+                        <form method="POST" action="{{ url_for('marketplace.place_order') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="product_id" value="{{ p.id }}">
+                            <button type="submit" class="btn btn-primary btn-sm w-100">Order at Rs.{{ "%.2f"|format(p.app_price) }}</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

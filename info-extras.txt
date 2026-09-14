@@ -1,0 +1,15 @@
+
+**Stack additions worth making**
+- **React or Next.js frontend** instead of vanilla JS — makes multi-role dashboards (owner/service center/manufacturer) far easier to build and looks way more current.
+- **FastAPI or Flask** instead of raw Python scripts — proper REST API, JWT auth, auto docs. Same language, big credibility jump.
+- **PostgreSQL** instead of MySQL if they want JSON fields for flexible vehicle specs — optional, not essential.
+
+**Feature-rich additions (with that stack)**
+- **Multi-vehicle fleet mode** — a user manages multiple vehicles (bikes + cars), useful for families or small fleets, and pairs well with a filterable dashboard.
+- **Service center marketplace/booking** — owner picks a nearby service center, books a slot, gets confirmation. Real transactional flow instead of just reminders. Basic geolocation via browser API + a simple "nearby centers" list from DB.
+- **Cost tracking & budgeting** — log spend per service, show monthly/yearly maintenance cost, compare against average for that vehicle model (even hardcoded benchmarks work).
+- **Review/rating system for service centers** — owners rate after service, builds a trust layer, easy CRUD feature that adds real depth.
+- **Vehicle resale profile / shareable link** — generate a public read-only link (or QR) showing verified service history for a buyer — strong "real-world problem solved" narrative for the viva.
+- **Recall & advisory push system** — manufacturer posts a recall tied to a model/VIN range, system auto-notifies affected owners. Good use of role-based logic.
+- **Chatbot/FAQ assistant** — simple rule-based or a free LLM API (Groq/Gemini free tier) for "when should I change my oil?" type queries. Cheap to add, demos very well.
+- **Analytics dashboard for manufacturers** — aggregate anonymized data: which models need most repairs, common failure points. Turns raw data into "insight," which panels like.

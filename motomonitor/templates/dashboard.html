@@ -1,0 +1,151 @@
+{% extends "layout.html" %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+{% block content %}
+<h2>Dashboard</h2>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body text-center">
+                <h3>{{ overdue_count }}</h3>
+                <p class="mb-0">Overdue</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body text-center">
+                <h3>{{ upcoming_count }}</h3>
+                <p class="mb-0">Upcoming</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-secondary">
+            <div class="card-body text-center">
+                <h3>{{ vehicle_count }}</h3>
+                <p class="mb-0">Vehicles</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body text-center">
+                <h3>Rs.{{ "%.0f"|format(total_cost) }}</h3>
+                <p class="mb-0">Total Spent</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overdue Section -->
+{% if overdue %}
+    <div class="card mb-4 border-danger">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">Overdue Reminders</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>Vehicle</th><th>Type</th><th>Due Date</th><th></th></tr></thead>
+                <tbody>
+                    {% for r in overdue %}
+                        <tr>
+                            <td>{{ r.nickname or r.registration_number }}</td>
+                            <td>{{ r.type.replace('_', ' ').title() }}</td>
+                            <td>{{ r.due_date }}</td>
+                            <td><a href="{{ url_for('reminders.complete_reminder_route', reminder_id=r.id) }}" class="btn btn-sm btn-outline-success">Complete</a></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Upcoming Section -->
+{% if upcoming %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Upcoming Reminders</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>Vehicle</th><th>Type</th><th>Due Date</th><th></th></tr></thead>
+                <tbody>
+                    {% for r in upcoming %}
+                        <tr>
+                            <td>{{ r.nickname or r.registration_number }}</td>
+                            <td>{{ r.type.replace('_', ' ').title() }}</td>
+                            <td>{{ r.due_date }}</td>
+                            <td><a href="{{ url_for('reminders.complete_reminder_route', reminder_id=r.id) }}" class="btn btn-sm btn-outline-success">Complete</a></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Charts -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">Spend by Category</h5></div>
+            <div class="card-body">
+                {% if chart_data %}
+                    <canvas id="spendChart"></canvas>
+                {% else %}
+                    <p class="text-muted">No spending data yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">Reminder Status</h5></div>
+            <div class="card-body">
+                {% if status_data %}
+                    <canvas id="statusChart"></canvas>
+                {% else %}
+                    <p class="text-muted">No reminders yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if chart_data %}
+<script>
+    new Chart(document.getElementById('spendChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ chart_labels | tojson }},
+            datasets: [{
+                label: 'Amount (Rs.)',
+                data: {{ chart_data | tojson }},
+                backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#0dcaf0', '#6f42c1', '#fd7e14', '#20c997']
+            }]
+        }
+    });
+</script>
+{% endif %}
+{% if status_data %}
+<script>
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ status_labels | tojson }},
+            datasets: [{
+                data: {{ status_data | tojson }},
+                backgroundColor: ['#dc3545', '#0dcaf0', '#198754', '#ffc107']
+            }]
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

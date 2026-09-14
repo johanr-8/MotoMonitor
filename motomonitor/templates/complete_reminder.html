@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Complete Reminder</h2>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <p><strong>Type:</strong> {{ reminder.type.replace('_', ' ').title() }}</p>
+                <p><strong>Due Date:</strong> {{ reminder.due_date }}</p>
+
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">Cost (Rs.)</label>
+                        <input type="number" name="cost" class="form-control" step="0.01" min="0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success">Mark as Completed</button>
+                    <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=reminder.vehicle_id) }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

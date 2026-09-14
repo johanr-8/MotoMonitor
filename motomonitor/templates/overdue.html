@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Overdue Reminders</h2>
+
+{% if reminders %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Vehicle</th>
+                <th>Reg No</th>
+                <th>Type</th>
+                <th>Due Date</th>
+                <th>Days Overdue</th>
+                <th>Urgency</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in reminders %}
+                {% if r.days_overdue > 60 %}
+                    {% set urgency_class = "bg-danger text-white" %}
+                    {% set urgency_label = "Critical" %}
+                {% elif r.days_overdue > 30 %}
+                    {% set urgency_class = "bg-danger" %}
+                    {% set urgency_label = "High" %}
+                {% elif r.days_overdue > 7 %}
+                    {% set urgency_class = "bg-warning text-dark" %}
+                    {% set urgency_label = "Medium" %}
+                {% else %}
+                    {% set urgency_class = "bg-info" %}
+                    {% set urgency_label = "Low" %}
+                {% endif %}
+                <tr>
+                    <td>{{ r.nickname or '' }}</td>
+                    <td>{{ r.registration_number }}</td>
+                    <td>{{ r.type.replace('_', ' ').title() }}</td>
+                    <td>{{ r.due_date }}</td>
+                    <td class="text-danger fw-bold">{{ r.days_overdue }} days</td>
+                    <td><span class="badge {{ urgency_class }}">{{ urgency_label }}</span></td>
+                    <td>
+                        <a href="{{ url_for('reminders.complete_reminder_route', reminder_id=r.id) }}" class="btn btn-sm btn-outline-success">Complete</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <div class="alert alert-success">No overdue reminders. You're all caught up!</div>
+{% endif %}
+
+<a href="{{ url_for('vehicles.list_vehicles') }}" class="btn btn-secondary">Back to Vehicles</a>
+{% endblock %}

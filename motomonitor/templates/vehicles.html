@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>My Vehicles</h2>
+<a href="{{ url_for('vehicles.add_vehicle') }}" class="btn btn-primary mb-3">+ Add Vehicle</a>
+
+{% if vehicles %}
+    <div class="row">
+        {% for v in vehicles %}
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ v.nickname or (v.make ~ ' ' ~ v.model) }}</h5>
+                        <p class="card-text">
+                            <strong>Make:</strong> {{ v.make }}<br>
+                            <strong>Model:</strong> {{ v.model }}<br>
+                            <strong>Reg:</strong> {{ v.registration_number }}<br>
+                            <strong>Purchased:</strong> {{ v.purchase_date }}
+                        </p>
+                        <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=v.id) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                        <a href="{{ url_for('vehicles.edit_vehicle', vehicle_id=v.id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                        <form method="POST" action="{{ url_for('vehicles.delete_vehicle_route', vehicle_id=v.id) }}" style="display:inline;" onsubmit="return confirm('Delete this vehicle?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info">No vehicles yet. Add your first one!</div>
+{% endif %}
+{% endblock %}

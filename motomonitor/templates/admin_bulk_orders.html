@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Admin — Bulk Order Tracker</h2>
+
+{% if grouped %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Pincode</th>
+                <th>Pending Orders</th>
+                <th>Threshold</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for g in grouped %}
+                {% if g.status == 'pending' %}
+                    <tr>
+                        <td>{{ g.product_name }}</td>
+                        <td>{{ g.pincode }}</td>
+                        <td>{{ g.order_count }}</td>
+                        <td>{{ g.bulk_threshold }}</td>
+                        <td>
+                            {% if g.order_count >= g.bulk_threshold %}
+                                <span class="badge bg-success">Unlocked</span>
+                            {% else %}
+                                <span class="badge bg-warning">{{ g.bulk_threshold - g.order_count }} more needed</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if g.order_count >= g.bulk_threshold %}
+                                <form method="POST" action="{{ url_for('admin.fulfill_order') }}" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="product_id" value="{{ g.product_id }}">
+                                    <input type="hidden" name="pincode" value="{{ g.pincode }}">
+                                    <button type="submit" class="btn btn-sm btn-success">Mark Fulfilled</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% elif g.status == 'bulk_unlocked' %}
+                    <tr class="table-success">
+                        <td>{{ g.product_name }}</td>
+                        <td>{{ g.pincode }}</td>
+                        <td>{{ g.order_count }}</td>
+                        <td>{{ g.bulk_threshold }}</td>
+                        <td><span class="badge bg-primary">Bulk Unlocked</span></td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin.fulfill_order') }}" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="product_id" value="{{ g.product_id }}">
+                                <input type="hidden" name="pincode" value="{{ g.pincode }}">
+                                <button type="submit" class="btn btn-sm btn-success">Mark Fulfilled</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% elif g.status == 'fulfilled' %}
+                    <tr class="table-secondary">
+                        <td>{{ g.product_name }}</td>
+                        <td>{{ g.pincode }}</td>
+                        <td>{{ g.order_count }}</td>
+                        <td>{{ g.bulk_threshold }}</td>
+                        <td><span class="badge bg-secondary">Fulfilled</span></td>
+                        <td></td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <div class="alert alert-info">No pending bulk orders.</div>
+{% endif %}
+
+<a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+{% endblock %}
