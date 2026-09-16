@@ -1,52 +1,52 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2>Overdue Reminders</h2>
+<div class="fade-in">
+    <h1 class="page-title">
+        <span class="title-icon">&#9888;&#65039;</span> Overdue Tracker
+    </h1>
 
-{% if reminders %}
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Vehicle</th>
-                <th>Reg No</th>
-                <th>Type</th>
-                <th>Due Date</th>
-                <th>Days Overdue</th>
-                <th>Urgency</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
+    {% if reminders %}
+        <div class="d-flex flex-column gap-3">
             {% for r in reminders %}
-                {% if r.days_overdue > 60 %}
-                    {% set urgency_class = "bg-danger text-white" %}
-                    {% set urgency_label = "Critical" %}
-                {% elif r.days_overdue > 30 %}
-                    {% set urgency_class = "bg-danger" %}
-                    {% set urgency_label = "High" %}
-                {% elif r.days_overdue > 7 %}
-                    {% set urgency_class = "bg-warning text-dark" %}
-                    {% set urgency_label = "Medium" %}
+                {% if r.days_overdue <= 7 %}
+                    {% set urgency = 'low' %}
+                    {% set urgency_label = 'Low' %}
+                    {% set icon = 'ℹ️' %}
+                {% elif r.days_overdue <= 30 %}
+                    {% set urgency = 'medium' %}
+                    {% set urgency_label = 'Medium' %}
+                    {% set icon = '⚠️' %}
+                {% elif r.days_overdue <= 60 %}
+                    {% set urgency = 'high' %}
+                    {% set urgency_label = 'High' %}
+                    {% set icon = '🔴' %}
                 {% else %}
-                    {% set urgency_class = "bg-info" %}
-                    {% set urgency_label = "Low" %}
+                    {% set urgency = 'critical' %}
+                    {% set urgency_label = 'Critical' %}
+                    {% set icon = '🚨' %}
                 {% endif %}
-                <tr>
-                    <td>{{ r.nickname or '' }}</td>
-                    <td>{{ r.registration_number }}</td>
-                    <td>{{ r.type.replace('_', ' ').title() }}</td>
-                    <td>{{ r.due_date }}</td>
-                    <td class="text-danger fw-bold">{{ r.days_overdue }} days</td>
-                    <td><span class="badge {{ urgency_class }}">{{ urgency_label }}</span></td>
-                    <td>
-                        <a href="{{ url_for('reminders.complete_reminder_route', reminder_id=r.id) }}" class="btn btn-sm btn-outline-success">Complete</a>
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-{% else %}
-    <div class="alert alert-success">No overdue reminders. You're all caught up!</div>
-{% endif %}
 
-<a href="{{ url_for('vehicles.list_vehicles') }}" class="btn btn-secondary">Back to Vehicles</a>
+                <div class="urgency-card urgency-{{ urgency }} fade-in-scale fade-in-delay-{{ loop.index0 % 4 + 1 }}">
+                    <div class="urgency-icon">{{ icon }}</div>
+                    <div class="urgency-info">
+                        <div class="urgency-type">{{ r.type.replace('_', ' ').title() }}</div>
+                        <div class="urgency-vehicle">Vehicle #{{ r.vehicle_id }} &middot; Due: {{ r.due_date }}</div>
+                    </div>
+                    <div class="urgency-meta">
+                        <div class="urgency-days">{{ r.days_overdue }} days</div>
+                        <div class="urgency-label">{{ urgency_label }}</div>
+                    </div>
+                    <a href="{{ url_for('reminders.complete_reminder_route', reminder_id=r.id) }}" class="btn btn-moto-success btn-moto-sm">Complete</a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card-moto">
+            <div class="empty-state">
+                <div class="empty-icon">&#9989;</div>
+                <div class="empty-text">No overdue reminders. You're all caught up!</div>
+            </div>
+        </div>
+    {% endif %}
+</div>
 {% endblock %}

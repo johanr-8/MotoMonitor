@@ -1,33 +1,50 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2>My Vehicles</h2>
-<a href="{{ url_for('vehicles.add_vehicle') }}" class="btn btn-primary mb-3">+ Add Vehicle</a>
+<div class="fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="page-title mb-0">
+            <span class="title-icon">&#128663;</span> My Vehicles
+        </h1>
+        <a href="{{ url_for('vehicles.add_vehicle') }}" class="btn btn-moto">+ Add Vehicle</a>
+    </div>
 
-{% if vehicles %}
-    <div class="row">
-        {% for v in vehicles %}
-            <div class="col-md-4 mb-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ v.nickname or (v.make ~ ' ' ~ v.model) }}</h5>
-                        <p class="card-text">
-                            <strong>Make:</strong> {{ v.make }}<br>
-                            <strong>Model:</strong> {{ v.model }}<br>
-                            <strong>Reg:</strong> {{ v.registration_number }}<br>
-                            <strong>Purchased:</strong> {{ v.purchase_date }}
-                        </p>
-                        <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=v.id) }}" class="btn btn-sm btn-outline-primary">View Details</a>
-                        <a href="{{ url_for('vehicles.edit_vehicle', vehicle_id=v.id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
-                        <form method="POST" action="{{ url_for('vehicles.delete_vehicle_route', vehicle_id=v.id) }}" style="display:inline;" onsubmit="return confirm('Delete this vehicle?')">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                        </form>
+    {% if vehicles %}
+        <div class="row g-3">
+            {% for v in vehicles %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="vehicle-card fade-in-scale fade-in-delay-{{ loop.index0 % 4 + 1 }}">
+                        <div class="vehicle-header">
+                            <div>
+                                <div class="vehicle-name">{{ v.make }} {{ v.model }}</div>
+                                {% if v.nickname %}
+                                    <div class="vehicle-nickname">"{{ v.nickname }}"</div>
+                                {% endif %}
+                            </div>
+                            <span class="badge-moto badge-info">{{ v.registration_number }}</span>
+                        </div>
+                        <div class="vehicle-meta">
+                            &#128197; Purchased: {{ v.purchase_date or 'Not set' }}
+                        </div>
+                        <div class="vehicle-actions">
+                            <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=v.id) }}" class="btn btn-moto btn-moto-sm flex-fill">View</a>
+                            <a href="{{ url_for('vehicles.edit_vehicle', vehicle_id=v.id) }}" class="btn btn-moto-outline btn-moto-sm flex-fill">Edit</a>
+                            <form method="POST" action="{{ url_for('vehicles.delete_vehicle_route', vehicle_id=v.id) }}" class="d-inline" onsubmit="return confirm('Delete this vehicle and all its data?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-moto-danger btn-moto-sm">Del</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card-moto">
+            <div class="empty-state">
+                <div class="empty-icon">&#128663;</div>
+                <div class="empty-text">No vehicles yet. Add your first vehicle to get started!</div>
+                <a href="{{ url_for('vehicles.add_vehicle') }}" class="btn btn-moto">+ Add Vehicle</a>
             </div>
-        {% endfor %}
-    </div>
-{% else %}
-    <div class="alert alert-info">No vehicles yet. Add your first one!</div>
-{% endif %}
+        </div>
+    {% endif %}
+</div>
 {% endblock %}

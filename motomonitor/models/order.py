@@ -44,12 +44,12 @@ def unlock_bulk_orders(product_id, pincode):
 def get_all_pending_orders_grouped():
     conn = get_db()
     rows = conn.execute(
-        """SELECT o.product_id, o.pincode, p.name as product_name,
+        """SELECT o.product_id, o.pincode, p.name as product_name, o.status as order_status,
                   COUNT(*) as order_count, p.bulk_threshold
            FROM orders o
            JOIN products p ON o.product_id = p.id
-           WHERE o.status = 'pending'
-           GROUP BY o.product_id, o.pincode
+           WHERE o.status IN ('pending', 'bulk_unlocked')
+           GROUP BY o.product_id, o.pincode, o.status
            ORDER BY p.name""",
     ).fetchall()
     conn.close()

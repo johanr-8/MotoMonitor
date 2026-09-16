@@ -1,151 +1,384 @@
 {% extends "layout.html" %}
 {% block head %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .dashboard-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 400px;
+        color: var(--text-secondary);
+        gap: 0.75rem;
+    }
+    .counter-animate {
+        display: inline-block;
+        animation: countUp 0.5s ease forwards;
+    }
+</style>
 {% endblock %}
 {% block content %}
-<h2>Dashboard</h2>
-
-<!-- Summary Cards -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card text-white bg-danger">
-            <div class="card-body text-center">
-                <h3>{{ overdue_count }}</h3>
-                <p class="mb-0">Overdue</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-info">
-            <div class="card-body text-center">
-                <h3>{{ upcoming_count }}</h3>
-                <p class="mb-0">Upcoming</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-secondary">
-            <div class="card-body text-center">
-                <h3>{{ vehicle_count }}</h3>
-                <p class="mb-0">Vehicles</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-success">
-            <div class="card-body text-center">
-                <h3>Rs.{{ "%.0f"|format(total_cost) }}</h3>
-                <p class="mb-0">Total Spent</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Overdue Section -->
-{% if overdue %}
-    <div class="card mb-4 border-danger">
-        <div class="card-header bg-danger text-white">
-            <h5 class="mb-0">Overdue Reminders</h5>
-        </div>
-        <div class="card-body">
-            <table class="table table-sm mb-0">
-                <thead><tr><th>Vehicle</th><th>Type</th><th>Due Date</th><th></th></tr></thead>
-                <tbody>
-                    {% for r in overdue %}
-                        <tr>
-                            <td>{{ r.nickname or r.registration_number }}</td>
-                            <td>{{ r.type.replace('_', ' ').title() }}</td>
-                            <td>{{ r.due_date }}</td>
-                            <td><a href="{{ url_for('reminders.complete_reminder_route', reminder_id=r.id) }}" class="btn btn-sm btn-outline-success">Complete</a></td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-{% endif %}
-
-<!-- Upcoming Section -->
-{% if upcoming %}
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Upcoming Reminders</h5>
-        </div>
-        <div class="card-body">
-            <table class="table table-sm mb-0">
-                <thead><tr><th>Vehicle</th><th>Type</th><th>Due Date</th><th></th></tr></thead>
-                <tbody>
-                    {% for r in upcoming %}
-                        <tr>
-                            <td>{{ r.nickname or r.registration_number }}</td>
-                            <td>{{ r.type.replace('_', ' ').title() }}</td>
-                            <td>{{ r.due_date }}</td>
-                            <td><a href="{{ url_for('reminders.complete_reminder_route', reminder_id=r.id) }}" class="btn btn-sm btn-outline-success">Complete</a></td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-{% endif %}
-
-<!-- Charts -->
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header"><h5 class="mb-0">Spend by Category</h5></div>
-            <div class="card-body">
-                {% if chart_data %}
-                    <canvas id="spendChart"></canvas>
-                {% else %}
-                    <p class="text-muted">No spending data yet.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header"><h5 class="mb-0">Reminder Status</h5></div>
-            <div class="card-body">
-                {% if status_data %}
-                    <canvas id="statusChart"></canvas>
-                {% else %}
-                    <p class="text-muted">No reminders yet.</p>
-                {% endif %}
-            </div>
-        </div>
+<div id="dashboard-root" class="react-mount">
+    <div class="dashboard-loading">
+        <div class="spinner-moto"></div>
+        <span>Loading dashboard...</span>
     </div>
 </div>
 {% endblock %}
-
 {% block scripts %}
-{% if chart_data %}
-<script>
-    new Chart(document.getElementById('spendChart'), {
-        type: 'bar',
-        data: {
-            labels: {{ chart_labels | tojson }},
-            datasets: [{
-                label: 'Amount (Rs.)',
-                data: {{ chart_data | tojson }},
-                backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#0dcaf0', '#6f42c1', '#fd7e14', '#20c997']
-            }]
+{% raw %}
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const URGENCY_COLORS = {
+    Low: '#74b9ff',
+    Medium: '#fdcb6e',
+    High: '#e17055',
+    Critical: '#ff4757',
+};
+
+const URGENCY_ICONS = {
+    Low: '\u{2139}\uFE0F',
+    Medium: '\u{26A0}\uFE0F',
+    High: '\u{1F534}',
+    Critical: '\u{1F6A8}',
+};
+
+const REMINDER_ICONS = {
+    insurance: '\u{1F6E1}\uFE0F',
+    road_tax: '\u{1F4B3}',
+    puc: '\u{1F3F7}\uFE0F',
+    driving_license: '\u{1F4DD}',
+    rc_renewal: '\u{1F4CB}',
+    warranty: '\u{1F6E0}\uFE0F',
+    amc: '\u{1F527}',
+    service: '\u{1F527}',
+};
+
+const STATUS_COLORS = {
+    overdue: '#e17055',
+    upcoming: '#74b9ff',
+    due_soon: '#fdcb6e',
+    completed: '#00b894',
+};
+
+function AnimatedCounter({ value, prefix, delay }) {
+    const [display, setDisplay] = useState(0);
+    const numericValue = typeof value === 'string' ? parseInt(value.replace(/[^0-9]/g, '')) || 0 : value;
+
+    useEffect(() => {
+        if (numericValue === 0) { setDisplay(0); return; }
+        const duration = 800;
+        const steps = 30;
+        const increment = numericValue / steps;
+        let current = 0;
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= numericValue) {
+                setDisplay(numericValue);
+                clearInterval(timer);
+            } else {
+                setDisplay(Math.floor(current));
+            }
+        }, duration / steps);
+        return () => clearInterval(timer);
+    }, [numericValue]);
+
+    return <span className="counter-animate" style={{animationDelay: `${delay}s`}}>{prefix}{display.toLocaleString()}</span>;
+}
+
+function StatCard({ icon, value, label, variant, delay, prefix = '' }) {
+    return (
+        <div className={`stat-card stat-${variant} fade-in-scale fade-in-delay-${delay}`}>
+            <div className="stat-icon">{icon}</div>
+            <div className="stat-value">
+                <AnimatedCounter value={value} prefix={prefix} delay={delay * 0.1} />
+            </div>
+            <div className="stat-label">{label}</div>
+        </div>
+    );
+}
+
+function OverdueRow({ r, index }) {
+    const urgencyClass = `urgency-${r.urgency.toLowerCase()}`;
+    const urgencyIcon = URGENCY_ICONS[r.urgency] || '\u{26A0}\uFE0F';
+    return (
+        <tr style={{animation: `slideInLeft 0.3s ease forwards`, animationDelay: `${index * 0.05}s`, opacity: 0}}>
+            <td>
+                <span className="badge-moto badge-accent">
+                    {REMINDER_ICONS[r.type] || '\u{1F514}'} {r.type.replace('_', ' ')}
+                </span>
+            </td>
+            <td>
+                <span className={`fw-bold ${urgencyClass}`} style={{display:'inline-flex', alignItems:'center', gap:'0.3rem'}}>
+                    {urgencyIcon} {r.urgency}
+                </span>
+            </td>
+            <td className="fw-bold">{r.days_overdue} days</td>
+            <td>{r.due_date}</td>
+            <td>
+                <a href={`/reminders/${r.id}/complete`} className="btn btn-moto-success btn-moto-sm">Complete</a>
+            </td>
+        </tr>
+    );
+}
+
+function UpcomingRow({ r, index }) {
+    return (
+        <tr style={{animation: `slideInRight 0.3s ease forwards`, animationDelay: `${index * 0.05}s`, opacity: 0}}>
+            <td>
+                <span className="badge-moto badge-accent">
+                    {REMINDER_ICONS[r.type] || '\u{1F514}'} {r.type.replace('_', ' ')}
+                </span>
+            </td>
+            <td>{r.due_date}</td>
+            <td style={{color:'var(--text-secondary)'}}>{r.notes || '\u2014'}</td>
+        </tr>
+    );
+}
+
+function Dashboard() {
+    const [data, setData] = useState(null);
+    const spendChartRef = useRef(null);
+    const statusChartRef = useRef(null);
+    const spendChartInstance = useRef(null);
+    const statusChartInstance = useRef(null);
+
+    useEffect(() => {
+        fetch('/api/dashboard')
+            .then(res => res.json())
+            .then(setData)
+            .catch(err => console.error('Failed to load dashboard:', err));
+    }, []);
+
+    useEffect(() => {
+        if (!data) return;
+
+        if (spendChartInstance.current) spendChartInstance.current.destroy();
+        if (statusChartInstance.current) statusChartInstance.current.destroy();
+
+        if (spendChartRef.current && data.chart_labels.length > 0) {
+            const ctx = spendChartRef.current.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+            gradient.addColorStop(0, 'rgba(108, 92, 231, 0.6)');
+            gradient.addColorStop(1, 'rgba(108, 92, 231, 0.05)');
+
+            spendChartInstance.current = new Chart(spendChartRef.current, {
+                type: 'bar',
+                data: {
+                    labels: data.chart_labels.map(l => l.replace('_', ' ')),
+                    datasets: [{
+                        label: 'Spent (\u20B9)',
+                        data: data.chart_data,
+                        backgroundColor: gradient,
+                        borderColor: '#6c5ce7',
+                        borderWidth: 1,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1e2230',
+                            titleColor: '#eef0f6',
+                            bodyColor: '#a29bfe',
+                            borderColor: '#2d3143',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            padding: 12,
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#8b92a5', font: { size: 11 } },
+                            grid: { color: 'rgba(45, 49, 67, 0.5)' }
+                        },
+                        y: {
+                            ticks: { color: '#8b92a5', font: { size: 11 } },
+                            grid: { color: 'rgba(45, 49, 67, 0.5)' }
+                        },
+                    }
+                }
+            });
         }
-    });
-</script>
-{% endif %}
-{% if status_data %}
-<script>
-    new Chart(document.getElementById('statusChart'), {
-        type: 'doughnut',
-        data: {
-            labels: {{ status_labels | tojson }},
-            datasets: [{
-                data: {{ status_data | tojson }},
-                backgroundColor: ['#dc3545', '#0dcaf0', '#198754', '#ffc107']
-            }]
+
+        if (statusChartRef.current && data.status_labels.length > 0) {
+            const colors = data.status_labels.map(s => STATUS_COLORS[s] || '#6c5ce7');
+            statusChartInstance.current = new Chart(statusChartRef.current, {
+                type: 'doughnut',
+                data: {
+                    labels: data.status_labels.map(s => s.replace('_', ' ')),
+                    datasets: [{
+                        data: data.status_data,
+                        backgroundColor: colors,
+                        borderWidth: 0,
+                        hoverOffset: 8,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#8b92a5', padding: 16, font: { size: 12 } }
+                        },
+                        tooltip: {
+                            backgroundColor: '#1e2230',
+                            titleColor: '#eef0f6',
+                            bodyColor: '#a29bfe',
+                            borderColor: '#2d3143',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            padding: 12,
+                        }
+                    }
+                }
+            });
         }
-    });
+
+        return () => {
+            if (spendChartInstance.current) spendChartInstance.current.destroy();
+            if (statusChartInstance.current) statusChartInstance.current.destroy();
+        };
+    }, [data]);
+
+    if (!data) {
+        return (
+            <div className="dashboard-loading">
+                <div className="spinner-moto"></div>
+                <span>Loading dashboard...</span>
+            </div>
+        );
+    }
+
+    return (
+        <div>
+            <div className="dashboard-welcome fade-in">
+                <h2>&#128202; Dashboard</h2>
+                <p>Here's an overview of your vehicle maintenance status</p>
+            </div>
+
+            <div className="row g-3 mb-4">
+                <div className="col-6 col-lg-3">
+                    <StatCard icon="&#9888;&#65039;" value={data.overdue_count} label="Overdue" variant="danger" delay={1} />
+                </div>
+                <div className="col-6 col-lg-3">
+                    <StatCard icon="&#128197;" value={data.upcoming_count} label="Upcoming" variant="warning" delay={2} />
+                </div>
+                <div className="col-6 col-lg-3">
+                    <StatCard icon="&#128663;" value={data.vehicle_count} label="Vehicles" variant="info" delay={3} />
+                </div>
+                <div className="col-6 col-lg-3">
+                    <StatCard icon="&#128176;" value={data.total_cost} label="Total Spent" variant="accent" delay={4} prefix={'\u20B9'} />
+                </div>
+            </div>
+
+            <div className="row g-4 mb-4">
+                <div className="col-lg-7">
+                    <div className="card-moto fade-in fade-in-delay-2">
+                        <div className="section-header">
+                            <span className="section-icon">&#9888;&#65039;</span> Overdue Reminders
+                        </div>
+                        {data.overdue.length === 0 ? (
+                            <div className="empty-state">
+                                <div className="empty-icon">&#9989;</div>
+                                <div className="empty-text">No overdue reminders. You're all caught up!</div>
+                            </div>
+                        ) : (
+                            <div style={{overflowX: 'auto'}}>
+                                <table className="table table-moto mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Urgency</th>
+                                            <th>Days Overdue</th>
+                                            <th>Due Date</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {data.overdue.map((r, i) => <OverdueRow key={r.id} r={r} index={i} />)}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                <div className="col-lg-5">
+                    <div className="card-moto fade-in fade-in-delay-3">
+                        <div className="section-header">
+                            <span className="section-icon">&#128197;</span> Upcoming
+                        </div>
+                        {data.upcoming.length === 0 ? (
+                            <div className="empty-state">
+                                <div className="empty-icon">&#128197;</div>
+                                <div className="empty-text">No upcoming reminders</div>
+                            </div>
+                        ) : (
+                            <div style={{overflowX: 'auto'}}>
+                                <table className="table table-moto mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Due Date</th>
+                                            <th>Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {data.upcoming.map((r, i) => <UpcomingRow key={r.id} r={r} index={i} />)}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <div className="row g-4">
+                <div className="col-lg-7">
+                    <div className="card-moto fade-in fade-in-delay-3">
+                        <div className="section-header">
+                            <span className="section-icon">&#128200;</span> Spend by Category
+                        </div>
+                        <div className="chart-container">
+                            {data.chart_labels.length === 0 ? (
+                                <div className="empty-state">
+                                    <div className="empty-icon">&#128200;</div>
+                                    <div className="empty-text">No spending data yet. Complete some reminders to see charts.</div>
+                                </div>
+                            ) : (
+                                <canvas ref={spendChartRef}></canvas>
+                            )}
+                        </div>
+                    </div>
+                </div>
+                <div className="col-lg-5">
+                    <div className="card-moto fade-in fade-in-delay-4">
+                        <div className="section-header">
+                            <span className="section-icon">&#128202;</span> Reminder Status
+                        </div>
+                        <div className="chart-container">
+                            {data.status_labels.length === 0 ? (
+                                <div className="empty-state">
+                                    <div className="empty-icon">&#128202;</div>
+                                    <div className="empty-text">No reminders yet</div>
+                                </div>
+                            ) : (
+                                <canvas ref={statusChartRef}></canvas>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+ReactDOM.createRoot(document.getElementById('dashboard-root')).render(<Dashboard />);
 </script>
-{% endif %}
+{% endraw %}
 {% endblock %}

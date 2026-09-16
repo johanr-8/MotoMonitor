@@ -1,38 +1,193 @@
 {% extends "layout.html" %}
+{% block head %}
+<style>
+    .marketplace-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 400px;
+        color: var(--text-secondary);
+        gap: 0.75rem;
+    }
+    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+    .order-toast {
+        position: fixed; top: 80px; right: 20px; z-index: 9999;
+        padding: 1rem 1.5rem; border-radius: var(--radius-sm);
+        font-weight: 600; animation: fadeIn 0.3s ease;
+        max-width: 400px;
+    }
+    .order-toast.success { background: rgba(0,184,148,0.95); color: #fff; }
+    .order-toast.info { background: rgba(108,92,231,0.95); color: #fff; }
+    .order-toast.error { background: rgba(225,112,85,0.95); color: #fff; }
+    .order-toast.warning { background: rgba(253,203,110,0.95); color: #1a1d27; }
+</style>
+{% endblock %}
 {% block content %}
-<h2>Marketplace</h2>
-<p class="text-muted">Pincode: <strong>{{ user_pincode or 'Not set' }}</strong> | Orders from your area count toward bulk unlock.</p>
+<div id="marketplace-root" class="react-mount">
+    <div class="marketplace-loading">
+        <div class="spinner-moto"></div>
+        <span>Loading marketplace...</span>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{% raw %}
+<script type="text/babel">
+const { useState, useEffect } = React;
 
-<div class="row">
-    {% for p in products %}
-        <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">{{ p.name }}</h5>
-                    <p class="card-text">
-                        <span class="badge bg-secondary">{{ p.category }}</span><br>
-                        <del class="text-muted">Rs.{{ "%.2f"|format(p.retail_price) }}</del>
-                        <strong class="text-success fs-5"> Rs.{{ "%.2f"|format(p.app_price) }}</strong><br>
-                        <small class="text-success">You save Rs.{{ "%.2f"|format(p.retail_price - p.app_price) }}</small>
-                    </p>
-                    <div class="mb-2">
-                        <small>Bulk progress: {{ p.progress }}/{{ p.bulk_threshold }} orders</small>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-success" style="width: {{ (p.progress / p.bulk_threshold * 100) | int if p.bulk_threshold > 0 else 0 }}%"></div>
-                        </div>
-                    </div>
-                    {% if p.already_ordered %}
-                        <span class="badge bg-warning">Already ordered</span>
-                    {% else %}
-                        <form method="POST" action="{{ url_for('marketplace.place_order') }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="product_id" value="{{ p.id }}">
-                            <button type="submit" class="btn btn-primary btn-sm w-100">Order at Rs.{{ "%.2f"|format(p.app_price) }}</button>
-                        </form>
-                    {% endif %}
+const PRODUCT_ICONS = {
+    'Lubricants': '\u{1F6E2}\uFE0F',
+    'Brakes': '\u{1F6D1}',
+    'Accessories': '\u{1F527}',
+    'Filters': '\u{1F4A8}',
+    'Ignition': '\u26A1',
+    'Tyres': '\u{1F6DE}',
+    'Safety': '\u{1F392}',
+};
+
+function Toast({ message, type, onClose }) {
+    useEffect(() => {
+        const t = setTimeout(onClose, 4000);
+        return () => clearTimeout(t);
+    }, []);
+    return <div className={`order-toast ${type}`}>{message}</div>;
+}
+
+function ProductCard({ product, onOrder }) {
+    const [ordering, setOrdering] = useState(false);
+    const progressPct = product.bulk_threshold > 0
+        ? Math.min((product.progress / product.bulk_threshold) * 100, 100)
+        : 0;
+    const unlocked = progressPct >= 100;
+    const icon = PRODUCT_ICONS[product.category] || '\u{1F6E9}\uFE0F';
+
+    const handleOrder = async () => {
+        setOrdering(true);
+        try {
+            const res = await fetch('/api/marketplace/order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id: product.id, quantity: 1 }),
+            });
+            const data = await res.json();
+            onOrder(data);
+        } catch (err) {
+            onOrder({ error: 'Network error. Please try again.' });
+        }
+        setOrdering(false);
+    };
+
+    return (
+        <div className="product-card">
+            <div className="product-icon">{icon}</div>
+            <div className="product-category">{product.category}</div>
+            <div className="product-name">{product.name}</div>
+
+            <div className="price-section">
+                <div className="d-flex justify-content-between align-items-baseline mb-1">
+                    <span className="price-retail">\u20B9{product.retail_price.toLocaleString()}</span>
+                    <span className="price-app">\u20B9{product.app_price.toLocaleString()}</span>
                 </div>
+                <div className="price-savings mb-3">You save \u20B9{product.savings.toLocaleString()}</div>
+
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                    <small className="text-secondary">{product.progress}/{product.bulk_threshold} orders in your area</small>
+                    {unlocked && <span className="badge-moto badge-success">Unlocked!</span>}
+                </div>
+                <div className="progress-moto mb-3">
+                    <div
+                        className={`progress-bar-moto ${unlocked ? 'unlocked' : ''}`}
+                        style={{ width: `${progressPct}%` }}
+                    ></div>
+                </div>
+
+                {product.already_ordered ? (
+                    <button className="btn btn-moto-outline w-100" disabled>Already Ordered</button>
+                ) : (
+                    <button
+                        className="btn btn-moto w-100"
+                        onClick={handleOrder}
+                        disabled={ordering}
+                    >
+                        {ordering ? <span className="spinner-moto"></span> : 'Place Order'}
+                    </button>
+                )}
             </div>
         </div>
-    {% endfor %}
-</div>
+    );
+}
+
+function Marketplace() {
+    const [products, setProducts] = useState([]);
+    const [userPincode, setUserPincode] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [toast, setToast] = useState(null);
+
+    useEffect(() => {
+        fetch('/api/marketplace')
+            .then(res => res.json())
+            .then(data => {
+                setProducts(data.products);
+                setUserPincode(data.user_pincode);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error('Failed to load marketplace:', err);
+                setLoading(false);
+            });
+    }, []);
+
+    const handleOrderResult = (result) => {
+        if (result.error) {
+            setToast({ message: result.error, type: 'warning' });
+        } else if (result.unlocked) {
+            setToast({ message: result.message, type: 'success' });
+            refreshProducts();
+        } else {
+            setToast({ message: result.message, type: 'info' });
+            refreshProducts();
+        }
+    };
+
+    const refreshProducts = () => {
+        fetch('/api/marketplace')
+            .then(res => res.json())
+            .then(data => {
+                setProducts(data.products);
+                setUserPincode(data.user_pincode);
+            });
+    };
+
+    if (loading) {
+        return (
+            <div className="marketplace-loading">
+                <div className="spinner-moto"></div>
+                <span>Loading marketplace...</span>
+            </div>
+        );
+    }
+
+    return (
+        <div>
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+            <h1 className="page-title">
+                <span className="title-icon">&#128722;</span> Marketplace
+            </h1>
+            <p className="text-secondary mb-4">
+                Order parts &amp; accessories. When enough people in your area ({userPincode || 'set your pincode'}) order the same product, everyone gets the bulk discount price!
+            </p>
+
+            <div className="product-grid">
+                {products.map(p => (
+                    <ProductCard key={p.id} product={p} onOrder={handleOrderResult} />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+ReactDOM.createRoot(document.getElementById('marketplace-root')).render(<Marketplace />);
+</script>
+{% endraw %}
 {% endblock %}

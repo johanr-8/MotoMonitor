@@ -1,133 +1,173 @@
 {% extends "layout.html" %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>{{ vehicle.nickname or (vehicle.make ~ ' ' ~ vehicle.model) }}</h2>
-    <div>
-        <a href="{{ url_for('vehicles.edit_vehicle', vehicle_id=vehicle.id) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
-        <a href="{{ url_for('vehicles.list_vehicles') }}" class="btn btn-outline-dark btn-sm">Back to List</a>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-body">
-                <h5>Vehicle Info</h5>
-                <p><strong>Make:</strong> {{ vehicle.make }}</p>
-                <p><strong>Model:</strong> {{ vehicle.model }}</p>
-                <p><strong>Reg No:</strong> {{ vehicle.registration_number }}</p>
-                <p><strong>Purchased:</strong> {{ vehicle.purchase_date }}</p>
+<div class="fade-in">
+    <div class="vehicle-hero">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1 class="hero-title">
+                    &#128663; {{ vehicle.make }} {{ vehicle.model }}
+                </h1>
+                {% if vehicle.nickname %}
+                    <div class="hero-nickname">"{{ vehicle.nickname }}"</div>
+                {% endif %}
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <div class="hero-stat-icon" style="background:rgba(116,185,255,0.12);">&#128203;</div>
+                        <div>
+                            <div class="hero-stat-label">Registration</div>
+                            <div class="hero-stat-value">{{ vehicle.registration_number }}</div>
+                        </div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-icon" style="background:rgba(108,92,231,0.12);">&#128197;</div>
+                        <div>
+                            <div class="hero-stat-label">Purchased</div>
+                            <div class="hero-stat-value">{{ vehicle.purchase_date or 'Not set' }}</div>
+                        </div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-icon" style="background:rgba(0,184,148,0.12);">&#128196;</div>
+                        <div>
+                            <div class="hero-stat-label">Documents</div>
+                            <div class="hero-stat-value">{{ documents|length }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('vehicles.edit_vehicle', vehicle_id=vehicle.id) }}" class="btn btn-moto-outline btn-moto-sm">Edit</a>
+                <a href="{{ url_for('vehicles.list_vehicles') }}" class="btn btn-moto-outline btn-moto-sm">Back</a>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Documents -->
-<div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Documents</h5>
-    </div>
-    <div class="card-body">
-        <form method="POST" action="{{ url_for('documents.upload_document', vehicle_id=vehicle.id) }}" enctype="multipart/form-data" class="mb-3">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="input-group">
-                <input type="file" name="file" class="form-control" required>
-                <button type="submit" class="btn btn-primary">Upload</button>
-            </div>
-        </form>
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card-moto mb-4">
+                <div class="section-header">
+                    <span class="section-icon">&#128196;</span> Documents
+                </div>
+                <form method="POST" action="{{ url_for('documents.upload_document', vehicle_id=vehicle.id) }}" enctype="multipart/form-data" class="mb-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="input-group">
+                        <input type="file" name="file" class="form-control form-moto" accept=".pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.txt">
+                        <button type="submit" class="btn btn-moto">Upload</button>
+                    </div>
+                    <small class="text-secondary" style="font-size:0.78rem;">PDF, images, docs. Max 10MB.</small>
+                </form>
 
-        {% if documents %}
-            <table class="table table-sm">
-                <thead><tr><th>File</th><th>Uploaded</th><th></th></tr></thead>
-                <tbody>
+                {% if documents %}
                     {% for doc in documents %}
-                        <tr>
-                            <td>
-                                <a href="{{ url_for('static', filename='uploads/' + doc.filename) }}" target="_blank">{{ doc.original_name }}</a>
-                            </td>
-                            <td>{{ doc.uploaded_at }}</td>
-                            <td>
-                                <a href="{{ url_for('static', filename='uploads/' + doc.filename) }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
-                                <form method="POST" action="{{ url_for('documents.delete_document_route', doc_id=doc.id) }}" style="display:inline;" onsubmit="return confirm('Delete this document?')">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
+                        <div class="doc-item">
+                            <div class="doc-icon">&#128196;</div>
+                            <div class="doc-info">
+                                <a href="{{ url_for('static', filename='uploads/' + doc.filename) }}" target="_blank" class="doc-name">{{ doc.original_name }}</a>
+                                <div class="doc-date">{{ doc.uploaded_at }}</div>
+                            </div>
+                            <form method="POST" action="{{ url_for('documents.delete_document_route', doc_id=doc.id) }}" onsubmit="return confirm('Delete this document?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-moto-danger btn-moto-sm">Delete</button>
+                            </form>
+                        </div>
                     {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p class="text-muted">No documents uploaded yet.</p>
-        {% endif %}
-    </div>
-</div>
+                {% else %}
+                    <div class="empty-state" style="padding:2rem 1rem;">
+                        <div class="empty-icon" style="font-size:2.5rem;">&#128194;</div>
+                        <div class="empty-text" style="font-size:0.9rem;">No documents uploaded yet</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
 
-<!-- Reminders -->
-<div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Reminders</h5>
-        <a href="{{ url_for('reminders.add_reminder') }}" class="btn btn-sm btn-primary">+ Add Reminder</a>
-    </div>
-    <div class="card-body">
-        {% if reminders %}
-            <table class="table table-sm">
-                <thead><tr><th>Type</th><th>Due Date</th><th>Status</th><th>Notes</th><th></th></tr></thead>
-                <tbody>
-                    {% for r in reminders %}
-                        <tr>
-                            <td>{{ r.type.replace('_', ' ').title() }}</td>
-                            <td>{{ r.due_date }}</td>
-                            <td>
-                                {% if r.status == 'overdue' %}
-                                    <span class="badge bg-danger">Overdue</span>
-                                {% elif r.status == 'completed' %}
-                                    <span class="badge bg-success">Completed</span>
-                                {% elif r.status == 'due_soon' %}
-                                    <span class="badge bg-warning">Due Soon</span>
-                                {% else %}
-                                    <span class="badge bg-info">Upcoming</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ r.notes or '' }}</td>
-                            <td>
-                                {% if r.status != 'completed' %}
-                                    <a href="{{ url_for('reminders.complete_reminder_route', reminder_id=r.id) }}" class="btn btn-sm btn-outline-success">Complete</a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p class="text-muted">No reminders set.</p>
-        {% endif %}
-    </div>
-</div>
+        <div class="col-lg-6">
+            <div class="card-moto mb-4">
+                <div class="section-header">
+                    <span class="section-icon">&#128276;</span> Reminders
+                    <a href="{{ url_for('reminders.add_reminder') }}" class="btn btn-moto btn-moto-sm ms-auto">+ Add</a>
+                </div>
+                {% if reminders %}
+                    <div style="overflow-x:auto;">
+                        <table class="table table-moto mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in reminders %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge-moto badge-accent">
+                                                {% set type_icons = {'insurance': '🛡️', 'road_tax': '💰', 'puc': '🏷️', 'driving_license': '📝', 'rc_renewal': '📋', 'warranty': '🔧', 'amc': '🔧', 'service': '🔧'} %}
+                                                {{ type_icons.get(r.type, '🔔') }} {{ r.type.replace('_', ' ').title() }}
+                                            </span>
+                                        </td>
+                                        <td>{{ r.due_date }}</td>
+                                        <td>
+                                            {% if r.status == 'completed' %}
+                                                <span class="badge-moto badge-success">&#10003; Completed</span>
+                                            {% elif r.status == 'overdue' %}
+                                                <span class="badge-moto badge-danger">&#9888; Overdue</span>
+                                            {% elif r.status == 'due_soon' %}
+                                                <span class="badge-moto badge-warning">&#9200; Due Soon</span>
+                                            {% else %}
+                                                <span class="badge-moto badge-info">&#128197; Upcoming</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if r.status != 'completed' %}
+                                                <a href="{{ url_for('reminders.complete_reminder_route', reminder_id=r.id) }}" class="btn btn-moto-success btn-moto-sm">Complete</a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state" style="padding:2rem 1rem;">
+                        <div class="empty-icon" style="font-size:2.5rem;">&#128276;</div>
+                        <div class="empty-text" style="font-size:0.9rem;">No reminders yet</div>
+                    </div>
+                {% endif %}
+            </div>
 
-<!-- Service Log -->
-<div class="card mb-4">
-    <div class="card-header">
-        <h5 class="mb-0">Service Log</h5>
-    </div>
-    <div class="card-body">
-        {% if service_logs %}
-            <table class="table table-sm">
-                <thead><tr><th>Type</th><th>Cost</th><th>Date</th><th>Notes</th></tr></thead>
-                <tbody>
-                    {% for log in service_logs %}
-                        <tr>
-                            <td>{{ log.type.replace('_', ' ').title() }}</td>
-                            <td>Rs.{{ "%.2f"|format(log.cost) }}</td>
-                            <td>{{ log.completed_at }}</td>
-                            <td>{{ log.notes or '' }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p class="text-muted">No service records yet.</p>
-        {% endif %}
+            <div class="card-moto">
+                <div class="section-header">
+                    <span class="section-icon">&#128196;</span> Service Log
+                </div>
+                {% if service_logs %}
+                    <div style="overflow-x:auto;">
+                        <table class="table table-moto mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Cost</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in service_logs %}
+                                    <tr>
+                                        <td>{{ log.completed_at }}</td>
+                                        <td class="fw-bold" style="color:var(--success);">Rs.{{ "%.2f"|format(log.cost) }}</td>
+                                        <td>{{ log.notes or '\u2014' }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state" style="padding:2rem 1rem;">
+                        <div class="empty-icon" style="font-size:2.5rem;">&#128196;</div>
+                        <div class="empty-text" style="font-size:0.9rem;">No service history yet</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

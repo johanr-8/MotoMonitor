@@ -1,34 +1,34 @@
 {% extends "layout.html" %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-5">
-        <div class="card mt-5">
-            <div class="card-body">
-                <h3 class="card-title text-center mb-4">Sign Up</h3>
-                <form method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="mb-3">
-                        <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Phone (optional)</label>
-                        <input type="text" name="phone" class="form-control">
-                    </div>
-                    <button type="submit" class="btn btn-success w-100">Sign Up</button>
-                </form>
-                <p class="text-center mt-3">
-                    Already have an account? <a href="{{ url_for('auth.login') }}">Login</a>
-                </p>
+<div class="auth-container">
+    <div class="auth-card fade-in-scale">
+        <div class="auth-logo">
+            <div class="logo-icon">&#128666;</div>
+        </div>
+        <h2 class="auth-title">Create Account</h2>
+        <p class="auth-subtitle">Start tracking your vehicle maintenance</p>
+        <form method="POST" class="form-moto" style="position:relative;z-index:1;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <input type="text" name="name" class="form-control" placeholder="John Doe" required>
             </div>
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input type="email" name="email" class="form-control" placeholder="you@example.com" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input type="password" name="password" class="form-control" placeholder="Choose a password" required>
+            </div>
+            <div class="mb-4">
+                <label class="form-label">Phone (optional)</label>
+                <input type="text" name="phone" class="form-control" placeholder="+91 98765 43210">
+            </div>
+            <button type="submit" class="btn btn-moto w-100 py-2">Create Account</button>
+        </form>
+        <div class="auth-footer">
+            Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
         </div>
     </div>
 </div>

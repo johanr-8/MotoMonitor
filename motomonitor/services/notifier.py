@@ -77,10 +77,41 @@ def send_reminder_alert(user, vehicle, reminder, days_left):
     email_ok = send_email(user["email"], subject, body)
 
     sms_msg = f"MotoMonitor: {rtype} for {vehicle_name} ({reg}) is {urgency}. Due: {reminder['due_date']}"
-    sms_ok = send_sms(user.get("phone", ""), sms_msg)
+    phone = user["phone"] if "phone" in user.keys() else ""
+    sms_ok = send_sms(phone or "", sms_msg)
+
+    family_email = user["family_email"] if "family_email" in user.keys() else ""
+    if family_email:
+        send_email(family_email, f"[CC] {subject}", body)
+
+    return email_ok and sms_ok
+
+
+def send_weekly_digest(user, upcoming_reminders):
+    """Send a weekly digest email listing all reminders due in the next 30 days."""
+    if not upcoming_reminders:
+        return True
+
+    lines = [f"Hi {user['name']},", "", "Here's your weekly maintenance digest:", ""]
+    for r in upcoming_reminders:
+        rtype = r["type"].replace("_", " ").title()
+        lines.append(f"  - {rtype} due on {r['due_date']} for {r.get('vehicle_name', 'your vehicle')}")
+
+    lines.extend([
+        "",
+        "Stay on top of your vehicle maintenance!",
+        "",
+        "Regards,",
+        "MotoMonitor",
+    ])
+
+    body = "\n".join(lines)
+    subject = f"MotoMonitor: Weekly Digest — {len(upcoming_reminders)} upcoming reminder(s)"
+
+    email_ok = send_email(user["email"], subject, body)
 
     family_email = user.get("family_email", "")
     if family_email:
         send_email(family_email, f"[CC] {subject}", body)
 
-    return email_ok and sms_ok
+    return email_ok
